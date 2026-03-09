@@ -1,18 +1,14 @@
-
-import pg from "pg";
-
-
-const { Pool } = pg;
+const { Pool } = require("pg");
 
 const pool = new Pool({
-  host:     "localhost",       // адрес сервера БД
-  port:     5432,              // порт PostgreSQL (по умолчанию 5432)
-  database: "hirespace",       // название базы данных
-  user:     "postgres",        // имя пользователя
-  password: "21112003",                // ← ВПИШИТЕ СВОЙ ПАРОЛЬ ЗДЕСЬ
+  host: "localhost",
+  port: 5432,
+  database: "hirespace",
+  user: "postgres",
+  password: "21112003",
 });
 
-// Проверка подключения при старте
+// Проверка подключения
 pool.connect((err, client, release) => {
   if (err) {
     console.error("❌ Ошибка подключения к БД:", err.message);
@@ -22,4 +18,4 @@ pool.connect((err, client, release) => {
   }
 });
 
-export default pool;
+module.exports = pool;

@@ -4,9 +4,9 @@
 //  Запуск: node server.js
 // ============================================================
 
-import express from "express";
-import cors from "cors";
-import pool from "./db.js";
+const express = require("express");
+const cors = require("cors");
+const pool = require("./db");
 
 
 const app = express();
