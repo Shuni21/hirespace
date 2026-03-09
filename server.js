@@ -4,11 +4,11 @@
 //  Запуск: node server.js
 // ============================================================
 
-import express    from "express";
-import cors       from "cors";
-import pool       from "./db";
+import express from "express";
+import cors from "cors";
+import pool from "./db.js";
 
-const app  = express();
+const app = express();
 const PORT = 3001;
 
 app.use(cors());
