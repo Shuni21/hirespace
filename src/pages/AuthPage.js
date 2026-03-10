@@ -2,52 +2,30 @@ import { useState } from "react";
 import { C } from "../constants/colors";
 import { usersApi } from "../constants/api";
 
-// ── Input ──────────────────────────────────────────────────
-const Input = ({ label, type = "text", placeholder, value, onChange, error, icon, rightEl }) => {
-  const [focused, setFocused] = useState(false);
-  return (
-    <div style={{ marginBottom: 16 }}>
-      {label && <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: C.text, marginBottom: 6 }}>{label}</label>}
-      <div style={{ position: "relative" }}>
-        {icon && <span style={{ position: "absolute", left: 13, top: "50%", transform: "translateY(-50%)", fontSize: 16, color: focused ? C.primary : C.muted, transition: "color .15s", pointerEvents: "none" }}>{icon}</span>}
-        <input type={type} placeholder={placeholder} value={value} onChange={onChange}
-          onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
-          style={{ width: "100%", boxSizing: "border-box", background: error ? C.redLight : "#fff",
-            border: `1.5px solid ${error ? C.red : focused ? C.primary : C.border}`,
-            borderRadius: 10, padding: `11px 14px 11px ${icon ? "40px" : "14px"}`,
-            paddingRight: rightEl ? 44 : 14, color: C.text, fontSize: 14, outline: "none",
-            transition: "border-color .15s, box-shadow .15s",
-            boxShadow: focused ? `0 0 0 3px ${C.primary}18` : "none", fontFamily: "inherit"
-          }} />
-        {rightEl && <span style={{ position: "absolute", right: 13, top: "50%", transform: "translateY(-50%)", cursor: "pointer", fontSize: 16, color: C.muted }}>{rightEl}</span>}
-      </div>
-      {error && <div style={{ color: C.red, fontSize: 12, marginTop: 5 }}>⚠ {error}</div>}
-    </div>
-  );
+const inp = {
+  width: "100%", boxSizing: "border-box", border: `1px solid ${C.border}`,
+  borderRadius: 8, padding: "12px 14px", fontSize: 14, color: C.text,
+  background: "#fff", outline: "none", fontFamily: "inherit",
 };
 
-const Spinner = () => <div style={{ width: 16, height: 16, border: "2.5px solid #ffffff50", borderTopColor: "#fff", borderRadius: "50%", animation: "spin 0.6s linear infinite" }} />;
-
-const SocialBtn = ({ icon, label }) => (
-  <button style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, background: "#fff", border: `1.5px solid ${C.border}`, borderRadius: 10, padding: "10px 16px", fontSize: 14, fontWeight: 600, color: C.text, cursor: "pointer", fontFamily: "inherit" }}
-    onMouseOver={e => { e.currentTarget.style.borderColor = C.borderFocus; e.currentTarget.style.background = C.primaryLight; }}
-    onMouseOut={e =>  { e.currentTarget.style.borderColor = C.border;      e.currentTarget.style.background = "#fff"; }}>
-    <span style={{ fontSize: 18 }}>{icon}</span> {label}
-  </button>
+const Inp = ({ label, error, ...props }) => (
+  <div style={{ marginBottom: 16 }}>
+    {label && <div style={{ fontSize: 14, color: C.text, marginBottom: 6 }}>{label}</div>}
+    <input style={{ ...inp, borderColor: error ? C.red : C.border }} {...props} />
+    {error && <div style={{ color: C.red, fontSize: 12, marginTop: 4 }}>{error}</div>}
+  </div>
 );
 
-// ── LOGIN ──────────────────────────────────────────────────
-const LoginForm = ({ onSwitch, onForgot, onSuccess }) => {
-  const [email, setEmail] = useState("");
+// ── Форма входа ───────────────────────────────────────────
+const LoginForm = ({ onSwitch, onSuccess }) => {
+  const [email,    setEmail]    = useState("");
   const [password, setPassword] = useState("");
-  const [showPw, setShowPw] = useState(false);
-  const [errors, setErrors] = useState({});
-  const [loading, setLoading] = useState(false);
+  const [errors,   setErrors]   = useState({});
+  const [loading,  setLoading]  = useState(false);
 
   const submit = async () => {
     const e = {};
     if (!email)    e.email    = "Введите email";
-    else if (!/\S+@\S+\.\S+/.test(email)) e.email = "Некорректный email";
     if (!password) e.password = "Введите пароль";
     if (Object.keys(e).length) { setErrors(e); return; }
     setLoading(true);
@@ -55,64 +33,48 @@ const LoginForm = ({ onSwitch, onForgot, onSuccess }) => {
       const user = await usersApi.login({ email, password });
       if (user.error) { setErrors({ password: "Неверная почта или пароль" }); return; }
       onSuccess(user);
-    } catch { setErrors({ password: "Ошибка подключения к серверу" }); }
-    finally { setLoading(false); }
+    } catch {
+      setErrors({ password: "Ошибка подключения к серверу" });
+    } finally {
+      setLoading(false);
+    }
   };
 
-  return (<>
-    <h2 style={{ fontSize: 24, fontWeight: 800, color: C.text, margin: "0 0 4px", letterSpacing: -0.5 }}>Добро пожаловать</h2>
-    <p style={{ color: C.sub, fontSize: 14, margin: "0 0 28px" }}>Войдите в свой аккаунт HireSpace</p>
-    <div style={{ display: "flex", gap: 10, marginBottom: 4 }}>
-      <SocialBtn icon="G" label="Google" />
-      <SocialBtn icon="⌘" label="Apple" />
+  return (
+    <div>
+      <h2 style={{ fontSize: 28, fontWeight: 700, color: C.text, marginBottom: 24 }}>Добро пожаловать</h2>
+      <Inp label="Email"  type="email"    placeholder="you@yandex.ru"  value={email}    onChange={e => { setEmail(e.target.value);    setErrors({}); }} error={errors.email} />
+      <Inp label="Пароль" type="password" placeholder="Введите пароль" value={password} onChange={e => { setPassword(e.target.value); setErrors({}); }} error={errors.password} />
+      <div style={{ textAlign: "right", marginTop: -8, marginBottom: 20 }}>
+        <span style={{ fontSize: 14, color: C.primary, cursor: "pointer" }}>Забыли пароль?</span>
+      </div>
+      <button onClick={submit} disabled={loading}
+        style={{ width: "100%", background: C.primary, border: "none", borderRadius: 8, padding: "13px", color: "#fff", fontWeight: 700, fontSize: 15, cursor: "pointer", fontFamily: "inherit" }}>
+        {loading ? "Входим..." : "Войти"}
+      </button>
+      <p style={{ textAlign: "center", fontSize: 14, color: C.sub, marginTop: 20 }}>
+        Нет аккаунта?{" "}
+        <span onClick={onSwitch} style={{ color: C.primary, fontWeight: 600, cursor: "pointer" }}>Зарегистрироваться</span>
+      </p>
     </div>
-    <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "20px 0" }}>
-      <div style={{ flex: 1, height: 1, background: C.border }} />
-      <span style={{ color: C.muted, fontSize: 13 }}>или через email</span>
-      <div style={{ flex: 1, height: 1, background: C.border }} />
-    </div>
-    <Input label="Email" type="email" placeholder="you@example.com" icon="✉" value={email} onChange={e => { setEmail(e.target.value); setErrors({}); }} error={errors.email} />
-    <Input label="Пароль" type={showPw ? "text" : "password"} placeholder="Введите пароль" icon="🔒" value={password} onChange={e => { setPassword(e.target.value); setErrors({}); }} error={errors.password}
-      rightEl={<span onClick={() => setShowPw(!showPw)} style={{ fontSize: 14 }}>{showPw ? "👁" : "👁‍🗨"}</span>} />
-    <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 20, marginTop: -8 }}>
-      <span onClick={onForgot} style={{ color: C.primary, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Забыли пароль?</span>
-    </div>
-    <button onClick={submit} disabled={loading}
-      style={{ width: "100%", background: loading ? C.primaryBorder : C.primary, border: "none", borderRadius: 10, padding: "13px", color: "#fff", fontWeight: 700, fontSize: 15, cursor: loading ? "default" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontFamily: "inherit" }}>
-      {loading ? <><Spinner /> Входим...</> : "Войти"}
-    </button>
-    <p style={{ textAlign: "center", color: C.sub, fontSize: 14, marginTop: 20 }}>
-      Нет аккаунта?{" "}
-      <span onClick={onSwitch} style={{ color: C.primary, fontWeight: 600, cursor: "pointer" }}>Зарегистрироваться</span>
-    </p>
-  </>);
+  );
 };
 
-// ── REGISTER ──────────────────────────────────────────────
+// ── Форма регистрации ─────────────────────────────────────
 const RegisterForm = ({ onSwitch, onSuccess }) => {
-  const [role, setRole] = useState(null);
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
+  const [role,     setRole]     = useState(null);
+  const [name,     setName]     = useState("");
+  const [email,    setEmail]    = useState("");
   const [password, setPassword] = useState("");
-  const [showPw, setShowPw] = useState(false);
-  const [agree, setAgree] = useState(false);
-  const [errors, setErrors] = useState({});
-  const [loading, setLoading] = useState(false);
-
-  const strength = !password ? 0 : password.length < 6 ? 1 : password.length < 10 ? 2 : 3;
-  const strengthLabel = ["", "Слабый", "Средний", "Надёжный"][strength];
-  const strengthColor = ["", C.red, C.muted, C.green][strength];
-  const strengthW = ["0%", "33%", "66%", "100%"][strength];
+  const [errors,   setErrors]   = useState({});
+  const [loading,  setLoading]  = useState(false);
 
   const submit = async () => {
     const e = {};
-    if (!role)    e.role = "Выберите роль";
-    if (!name.trim()) e.name = "Введите имя";
-    if (!email)   e.email = "Введите email";
-    else if (!/\S+@\S+\.\S+/.test(email)) e.email = "Некорректный email";
-    if (!password) e.password = "Введите пароль";
-    else if (password.length < 6) e.password = "Минимум 6 символов";
-    if (!agree)   e.agree = "Примите условия";
+    if (!role)     e.role     = "Выберите роль";
+    if (!name)     e.name     = "Введите имя";
+    if (!email)    e.email    = "Введите email";
+    if (!password || password.length < 6) e.password = "Минимум 6 символов";
     if (Object.keys(e).length) { setErrors(e); return; }
     setLoading(true);
     try {
@@ -120,158 +82,91 @@ const RegisterForm = ({ onSwitch, onSuccess }) => {
       const user = await usersApi.register({ email, password, role: ruRole });
       if (user.error) { setErrors({ email: user.error }); return; }
       onSuccess(user);
-    } catch { setErrors({ email: "Ошибка подключения к серверу" }); }
-    finally { setLoading(false); }
+    } catch {
+      setErrors({ email: "Ошибка подключения к серверу" });
+    } finally {
+      setLoading(false);
+    }
   };
 
-  return (<>
-    <h2 style={{ fontSize: 24, fontWeight: 800, color: C.text, margin: "0 0 4px", letterSpacing: -0.5 }}>Создать аккаунт</h2>
-    <p style={{ color: C.sub, fontSize: 14, margin: "0 0 24px" }}>Присоединяйтесь к HireSpace</p>
-    <div style={{ marginBottom: 20 }}>
-      <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: C.text, marginBottom: 8 }}>Я регистрируюсь как</label>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-        {[{ id: "seeker", icon: "👤", label: "Соискатель", sub: "Ищу работу" }, { id: "employer", icon: "🏢", label: "Работодатель", sub: "Ищу сотрудников" }].map(r => (
-          <div key={r.id} onClick={() => { setRole(r.id); setErrors({}); }}
-            style={{ border: `2px solid ${role === r.id ? C.primary : C.border}`, borderRadius: 12, padding: "14px 16px", cursor: "pointer", background: role === r.id ? C.primaryLight : "#fff", transition: "all .15s" }}>
-            <div style={{ fontSize: 20, marginBottom: 4 }}>{r.icon}</div>
-            <div style={{ fontWeight: 700, fontSize: 14, color: role === r.id ? C.primary : C.text }}>{r.label}</div>
-            <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>{r.sub}</div>
-          </div>
-        ))}
-      </div>
-      {errors.role && <div style={{ color: C.red, fontSize: 12, marginTop: 6 }}>⚠ {errors.role}</div>}
-    </div>
-    <Input label="Полное имя" placeholder="Иван Иванов" icon="👤" value={name} onChange={e => { setName(e.target.value); setErrors({}); }} error={errors.name} />
-    <Input label="Email" type="email" placeholder="you@example.com" icon="✉" value={email} onChange={e => { setEmail(e.target.value); setErrors({}); }} error={errors.email} />
-    <div style={{ marginBottom: 16 }}>
-      <Input label="Пароль" type={showPw ? "text" : "password"} placeholder="Минимум 6 символов" icon="🔒" value={password}
-        onChange={e => { setPassword(e.target.value); setErrors({}); }} error={errors.password}
-        rightEl={<span onClick={() => setShowPw(!showPw)} style={{ fontSize: 14 }}>{showPw ? "👁" : "👁‍🗨"}</span>} />
-      {password && (
-        <div style={{ marginTop: -8 }}>
-          <div style={{ height: 4, background: C.border, borderRadius: 4, overflow: "hidden" }}>
-            <div style={{ height: "100%", width: strengthW, background: strengthColor, borderRadius: 4, transition: "width .3s, background .3s" }} />
-          </div>
-          <div style={{ fontSize: 12, color: strengthColor, marginTop: 4, fontWeight: 600 }}>{strengthLabel}</div>
-        </div>
-      )}
-    </div>
-    <div style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 20 }}>
-      <div onClick={() => { setAgree(!agree); setErrors({}); }}
-        style={{ width: 18, height: 18, borderRadius: 5, border: `2px solid ${errors.agree ? C.red : agree ? C.primary : C.border}`, background: agree ? C.primary : "#fff", flexShrink: 0, marginTop: 1, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "all .15s" }}>
-        {agree && <span style={{ color: "#fff", fontSize: 11, fontWeight: 800 }}>✓</span>}
-      </div>
-      <div>
-        <span style={{ fontSize: 13, color: C.sub }}>Я принимаю </span>
-        <span style={{ color: C.primary, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>условия использования</span>
-        <span style={{ fontSize: 13, color: C.sub }}> и </span>
-        <span style={{ color: C.primary, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>политику конфиденциальности</span>
-        {errors.agree && <div style={{ color: C.red, fontSize: 12, marginTop: 3 }}>⚠ {errors.agree}</div>}
-      </div>
-    </div>
-    <button onClick={submit} disabled={loading}
-      style={{ width: "100%", background: loading ? C.primaryBorder : C.primary, border: "none", borderRadius: 10, padding: "13px", color: "#fff", fontWeight: 700, fontSize: 15, cursor: loading ? "default" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontFamily: "inherit" }}>
-      {loading ? <><Spinner /> Создаём аккаунт...</> : "Зарегистрироваться"}
-    </button>
-    <p style={{ textAlign: "center", color: C.sub, fontSize: 14, marginTop: 20 }}>
-      Уже есть аккаунт?{" "}
-      <span onClick={onSwitch} style={{ color: C.primary, fontWeight: 600, cursor: "pointer" }}>Войти</span>
-    </p>
-  </>);
-};
+  return (
+    <div>
+      <h2 style={{ fontSize: 28, fontWeight: 700, color: C.text, marginBottom: 20 }}>Создать аккаунт</h2>
 
-// ── FORGOT ──────────────────────────────────────────────────
-const ForgotForm = ({ onBack }) => {
-  const [email, setEmail] = useState("");
-  const [sent, setSent] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const submit = () => { if (!email) return; setLoading(true); setTimeout(() => { setLoading(false); setSent(true); }, 1000); };
-  if (sent) return (
-    <div style={{ textAlign: "center", padding: "12px 0" }}>
-      <div style={{ width: 60, height: 60, borderRadius: "50%", background: C.greenLight, border: `2px solid ${C.greenBorder}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 26, margin: "0 auto 20px" }}>✓</div>
-      <h2 style={{ fontSize: 22, fontWeight: 800, color: C.text, marginBottom: 8 }}>Письмо отправлено!</h2>
-      <p style={{ color: C.sub, fontSize: 14, lineHeight: 1.6, marginBottom: 28 }}>Инструкция по восстановлению отправлена на <strong style={{ color: C.text }}>{email}</strong></p>
-      <button onClick={onBack} style={{ background: C.primary, border: "none", borderRadius: 10, padding: "12px 32px", color: "#fff", fontWeight: 700, fontSize: 15, cursor: "pointer", fontFamily: "inherit" }}>Вернуться к входу</button>
+      {/* Выбор роли */}
+      <div style={{ marginBottom: 20 }}>
+        <div style={{ fontSize: 14, color: C.text, marginBottom: 10 }}>Я регистрируюсь как</div>
+        <div style={{ display: "flex", gap: 12 }}>
+          {[["seeker", "Соискатель"], ["employer", "Работодатель"]].map(([id, label]) => (
+            <div key={id} onClick={() => { setRole(id); setErrors(e => ({ ...e, role: null })); }}
+              style={{ flex: 1, border: `1.5px solid ${role === id ? C.primary : C.border}`, borderRadius: 8, padding: "12px", textAlign: "center", cursor: "pointer", background: role === id ? C.primaryLight : "#fff", color: role === id ? C.primary : C.text, fontWeight: role === id ? 600 : 400, fontSize: 14, transition: "all .15s" }}>
+              {label}
+            </div>
+          ))}
+        </div>
+        {errors.role && <div style={{ color: C.red, fontSize: 12, marginTop: 4 }}>{errors.role}</div>}
+      </div>
+
+      <Inp label="Полное имя" placeholder="Алексей Алексеевич" value={name}     onChange={e => { setName(e.target.value);     setErrors(er => ({ ...er, name: null })); }} error={errors.name} />
+      <Inp label="Email"      type="email" placeholder="you@yandex.ru"           value={email}    onChange={e => { setEmail(e.target.value);    setErrors(er => ({ ...er, email: null })); }} error={errors.email} />
+      <Inp label="Пароль"     type="password" placeholder="Минимум 6 символов"  value={password} onChange={e => { setPassword(e.target.value); setErrors(er => ({ ...er, password: null })); }} error={errors.password} />
+      <div style={{ textAlign: "right", marginTop: -8, marginBottom: 20 }}>
+        <span style={{ fontSize: 14, color: C.primary, cursor: "pointer" }}>Забыли пароль?</span>
+      </div>
+
+      <button onClick={submit} disabled={loading}
+        style={{ width: "100%", background: C.primary, border: "none", borderRadius: 8, padding: "13px", color: "#fff", fontWeight: 700, fontSize: 15, cursor: "pointer", fontFamily: "inherit" }}>
+        {loading ? "Создаём..." : "Зарегистрироваться"}
+      </button>
+      <p style={{ textAlign: "center", fontSize: 14, color: C.sub, marginTop: 20 }}>
+        Нет аккаунта?{" "}
+        <span onClick={onSwitch} style={{ color: C.primary, fontWeight: 600, cursor: "pointer" }}>Зарегистрироваться</span>
+      </p>
     </div>
   );
-  return (<>
-    <button onClick={onBack} style={{ background: "none", border: "none", color: C.sub, fontSize: 13, cursor: "pointer", padding: 0, marginBottom: 20, display: "flex", alignItems: "center", gap: 4, fontFamily: "inherit" }}>← Назад</button>
-    <h2 style={{ fontSize: 22, fontWeight: 800, color: C.text, margin: "0 0 8px" }}>Восстановление пароля</h2>
-    <p style={{ color: C.sub, fontSize: 14, margin: "0 0 24px", lineHeight: 1.6 }}>Введите email и мы пришлём ссылку для сброса пароля</p>
-    <Input label="Email" type="email" placeholder="you@example.com" icon="✉" value={email} onChange={e => setEmail(e.target.value)} />
-    <button onClick={submit} disabled={loading}
-      style={{ width: "100%", background: loading ? C.primaryBorder : C.primary, border: "none", borderRadius: 10, padding: "13px", color: "#fff", fontWeight: 700, fontSize: 15, cursor: "pointer", marginTop: 8, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontFamily: "inherit" }}>
-      {loading ? <><Spinner /> Отправляем...</> : "Отправить инструкцию"}
-    </button>
-  </>);
 };
 
-// ── SUCCESS ──────────────────────────────────────────────────
-const SuccessScreen = ({ mode, onContinue }) => (
-  <div style={{ textAlign: "center", padding: "20px 0" }}>
-    <div style={{ width: 64, height: 64, borderRadius: "50%", background: C.greenLight, border: `2px solid ${C.greenBorder}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28, margin: "0 auto 20px" }}>✓</div>
-    <h2 style={{ fontSize: 22, fontWeight: 800, color: C.text, marginBottom: 8 }}>{mode === "login" ? "Вход выполнен!" : "Аккаунт создан!"}</h2>
-    <p style={{ color: C.sub, fontSize: 14, lineHeight: 1.6, marginBottom: 28 }}>{mode === "login" ? "Добро пожаловать обратно в HireSpace 👋" : "Добро пожаловать в HireSpace! Начнём поиск 🚀"}</p>
-    <button onClick={onContinue} style={{ background: C.primary, border: "none", borderRadius: 10, padding: "12px 32px", color: "#fff", fontWeight: 700, fontSize: 15, cursor: "pointer", fontFamily: "inherit" }}>Перейти к платформе →</button>
-  </div>
-);
-
-// ── LEFT PANEL ──────────────────────────────────────────────
-const LeftPanel = () => (
-  <div style={{ flex: 1, background: "linear-gradient(135deg, #1D4ED8 0%, #2563EB 50%, #3B82F6 100%)", padding: "48px", display: "flex", flexDirection: "column", justifyContent: "space-between", minWidth: 0 }}>
-    <div>
-      <div style={{ fontSize: 13, fontWeight: 600, color: "#93C5FD", letterSpacing: 0.8, textTransform: "uppercase", marginBottom: 32 }}>Платформа для найма</div>
-      <h1 style={{ fontSize: 36, fontWeight: 800, color: "#fff", lineHeight: 1.2, marginBottom: 16, letterSpacing: -0.8 }}>Найди своё место — или нужного человека</h1>
-      <p style={{ color: "#BFDBFE", fontSize: 15, lineHeight: 1.7, maxWidth: 380 }}>Тысячи вакансий, удобный отклик и прозрачный статус рассмотрения — всё в одном месте.</p>
-    </div>
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      {[["✅", "Актуальные вакансии от 340+ компаний"], ["📬", "Мгновенное уведомление о статусе отклика"], ["🔒", "Безопасная передача данных и конфиденциальность"]].map(([icon, text]) => (
-        <div key={text} style={{ display: "flex", alignItems: "center", gap: 12, background: "rgba(255,255,255,0.08)", borderRadius: 12, padding: "14px 18px" }}>
-          <span style={{ fontSize: 20 }}>{icon}</span>
-          <span style={{ color: "#E0F2FE", fontSize: 14, fontWeight: 500 }}>{text}</span>
-        </div>
-      ))}
-    </div>
-    <div style={{ background: "rgba(255,255,255,0.1)", borderRadius: 16, padding: "20px 22px", border: "1px solid rgba(255,255,255,0.15)" }}>
-      <p style={{ color: "#E0F2FE", fontSize: 14, lineHeight: 1.7, margin: "0 0 12px", fontStyle: "italic" }}>"Нашёл работу за 2 недели. Очень удобно видеть статус каждого отклика в одном месте."</p>
-      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        <div style={{ width: 32, height: 32, borderRadius: "50%", background: "#93C5FD", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 13, color: C.primary }}>А</div>
-        <div>
-          <div style={{ color: "#fff", fontWeight: 600, fontSize: 13 }}>Алексей П.</div>
-          <div style={{ color: "#93C5FD", fontSize: 12 }}>Senior Frontend Developer</div>
-        </div>
-      </div>
-    </div>
-  </div>
-);
-
-// ── MAIN AUTH PAGE ───────────────────────────────────────────
+// ── Главный компонент ─────────────────────────────────────
 export default function AuthPage({ onLogin }) {
   const [mode, setMode] = useState("login");
-  const [prevMode, setPrevMode] = useState("login");
-  const switchTo  = (m) => { setPrevMode(mode); setMode(m); };
-  const onSuccess = (user) => { setPrevMode(mode); setMode("success"); if (onLogin) setTimeout(() => onLogin(user), 1200); };
+
+  const handleSuccess = (user) => {
+    setTimeout(() => onLogin(user), 300);
+  };
+
   return (
-    <div style={{ minHeight: "100vh", background: C.bg, fontFamily: "'Inter','Segoe UI',sans-serif", display: "flex", flexDirection: "column" }}>
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-      <div style={{ height: 60, background: "#fff", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 32px" }}>
+    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", fontFamily: "'Inter','Segoe UI',sans-serif" }}>
+
+      {/* Шапка */}
+      <div style={{ height: 60, background: "#fff", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 32px", position: "sticky", top: 0, zIndex: 10 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <div style={{ width: 30, height: 30, borderRadius: 8, background: C.primary, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 800, fontSize: 15 }}>H</div>
-          <span style={{ fontWeight: 700, fontSize: 16, color: C.text }}>HireSpace</span>
+          <div style={{ width: 32, height: 32, borderRadius: 8, background: C.primary, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 800, fontSize: 16 }}>H</div>
+          <span style={{ fontWeight: 700, fontSize: 18, color: C.text }}>HireSpace</span>
         </div>
-        <div style={{ display: "flex", gap: 8 }}>
-          <button onClick={() => switchTo("login")} style={{ background: mode === "login" ? C.primaryLight : "none", border: `1px solid ${mode === "login" ? C.primaryBorder : C.border}`, borderRadius: 8, padding: "7px 18px", color: mode === "login" ? C.primary : C.sub, fontWeight: 600, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}>Войти</button>
-          <button onClick={() => switchTo("register")} style={{ background: mode === "register" ? C.primary : "#fff", border: `1px solid ${mode === "register" ? C.primary : C.border}`, borderRadius: 8, padding: "7px 18px", color: mode === "register" ? "#fff" : C.sub, fontWeight: 600, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}>Регистрация</button>
-        </div>
+        <button onClick={() => setMode(mode === "login" ? "register" : "login")}
+          style={{ border: `1px solid ${C.border}`, borderRadius: 8, padding: "8px 20px", background: "#fff", color: C.text, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}>
+          {mode === "login" ? "Войти" : "Войти"}
+        </button>
       </div>
-      <div style={{ flex: 1, display: "flex", alignItems: "stretch" }}>
-        <LeftPanel />
-        <div style={{ width: 480, background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", padding: "40px 48px", flexShrink: 0 }}>
+
+      {/* Тело */}
+      <div style={{ flex: 1, display: "flex" }}>
+
+        {/* Левая синяя панель */}
+        <div style={{ flex: 1, background: C.primary, padding: "60px 56px", display: "flex", flexDirection: "column", justifyContent: "center" }}>
+          <div style={{ color: "rgba(255,255,255,0.6)", fontSize: 14, marginBottom: 32 }}>Платформа для найма</div>
+          <h1 style={{ fontSize: 40, fontWeight: 700, color: "#fff", lineHeight: 1.2, margin: 0 }}>
+            Найди своё место - или нужного человека
+          </h1>
+        </div>
+
+        {/* Правая форма */}
+        <div style={{ width: 520, background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", padding: "60px 56px" }}>
           <div style={{ width: "100%", maxWidth: 380 }}>
-            {mode === "login"    && <LoginForm    onSwitch={() => switchTo("register")} onForgot={() => switchTo("forgot")} onSuccess={onSuccess} />}
-            {mode === "register" && <RegisterForm onSwitch={() => switchTo("login")}    onSuccess={onSuccess} />}
-            {mode === "forgot"   && <ForgotForm   onBack={() => switchTo("login")} />}
-            {mode === "success"  && <SuccessScreen mode={prevMode} onContinue={() => switchTo("login")} />}
+            {mode === "login"
+              ? <LoginForm    onSwitch={() => setMode("register")} onSuccess={handleSuccess} />
+              : <RegisterForm onSwitch={() => setMode("login")}    onSuccess={handleSuccess} />
+            }
           </div>
         </div>
       </div>
