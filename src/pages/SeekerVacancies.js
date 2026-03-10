@@ -1,31 +1,80 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { C } from "../constants/colors";
+import { vacanciesApi, applicationsApi } from "../constants/api";
 
-// Моковые вакансии (в реальном проекте загружаются из БД)
-const MOCK_VACANCIES = [
-  { id: 1, title: "Senior Frontend Developer", company: "TechFlow",  city: "Москва",    type: "Удалённо", skills: ["React","TypeScript"], exp: "3+ лет", salary: "180 000 - 250 000" },
-  { id: 2, title: "Product Designer",          company: "DesignHub", city: "Удалённо",  type: "Удалённо", skills: ["Figma","UX"],          exp: "2+ лет", salary: "150 000 - 200 000" },
-  { id: 3, title: "Backend Developer",         company: "DataCorp",  city: "Москва",    type: "Офис",     skills: ["Go","PostgreSQL"],     exp: "2+ лет", salary: "200 000 - 280 000" },
-  { id: 4, title: "Data Engineer",             company: "AnalyticsPro", city: "Санкт-Петербург", type: "Гибрид", skills: ["Python","SQL"], exp: "2+ лет", salary: "180 000 - 250 000" },
-];
+const QUICK_TAGS = ["Все", "Удалённо", "React", "Python", "Figma"];
 
-const QUICK_FILTERS = ["Все", "Удалённо", "React", "Python"];
+const fmtSalary = (from, to) => {
+  if (!from && !to) return null;
+  if (from && to)   return `${from.toLocaleString("ru-RU")} - ${to.toLocaleString("ru-RU")} Руб.`;
+  if (from)         return `от ${from.toLocaleString("ru-RU")} Руб.`;
+  return `до ${to.toLocaleString("ru-RU")} Руб.`;
+};
 
-export default function SeekerVacancies({ onApply }) {
-  const [search,      setSearch]      = useState("");
-  const [citySearch,  setCitySearch]  = useState("");
-  const [activeTag,   setActiveTag]   = useState("Все");
-  const [sortBy,      setSortBy]      = useState("По дате");
+export default function SeekerVacancies({ seekerData }) {
+  const [vacancies,  setVacancies]  = useState([]);
+  const [loading,    setLoading]    = useState(true);
+  const [search,     setSearch]     = useState("");
+  const [city,       setCity]       = useState("");
+  const [activeTag,  setActiveTag]  = useState("Все");
+  const [sortBy,     setSortBy]     = useState("По дате");
+  const [expandedId, setExpandedId] = useState(null); // раскрытая вакансия
+  const [applied,    setApplied]    = useState({});   // { vacancy_id: 'success' | 'error' | 'loading' }
 
-  const filtered = MOCK_VACANCIES.filter(v => {
-    const q = search.toLowerCase();
-    if (q && !v.title.toLowerCase().includes(q) && !v.company.toLowerCase().includes(q)) return false;
-    if (citySearch && !v.city.toLowerCase().includes(citySearch.toLowerCase())) return false;
-    if (activeTag !== "Все") {
-      if (activeTag === "Удалённо" && v.type !== "Удалённо") return false;
-      if (activeTag !== "Удалённо" && !v.skills.includes(activeTag)) return false;
+  const load = async (filters = {}) => {
+    setLoading(true);
+    try {
+      const data = await vacanciesApi.getAll(filters);
+      setVacancies(Array.isArray(data) ? data : []);
+    } catch {
+      setVacancies([]);
+    } finally {
+      setLoading(false);
     }
-    return true;
+  };
+
+  useEffect(() => { load(); }, []);
+
+  const handleSearch = () => {
+    const f = {};
+    if (search) f.title = search;
+    if (city)   f.city  = city;
+    if (activeTag !== "Все" && activeTag !== "Удалённо") f.skill = activeTag;
+    if (activeTag === "Удалённо") f.schedule = "Удалённо";
+    load(f);
+  };
+
+  const handleTag = (tag) => {
+    setActiveTag(tag);
+    const f = {};
+    if (search) f.title = search;
+    if (city)   f.city  = city;
+    if (tag !== "Все" && tag !== "Удалённо") f.skill    = tag;
+    if (tag === "Удалённо")                  f.schedule  = "Удалённо";
+    load(f);
+  };
+
+  const handleApply = async (vacancy_id) => {
+    if (!seekerData?.id) {
+      setApplied(a => ({ ...a, [vacancy_id]: "no_profile" }));
+      return;
+    }
+    setApplied(a => ({ ...a, [vacancy_id]: "loading" }));
+    try {
+      const r = await applicationsApi.apply({ vacancy_id, seeker_id: seekerData.id });
+      if (r.error) {
+        setApplied(a => ({ ...a, [vacancy_id]: r.error }));
+      } else {
+        setApplied(a => ({ ...a, [vacancy_id]: "success" }));
+      }
+    } catch (e) {
+      setApplied(a => ({ ...a, [vacancy_id]: "Ошибка сервера" }));
+    }
+  };
+
+  const sorted = [...vacancies].sort((a, b) => {
+    if (sortBy === "По зарплате") return (b.salary_from || 0) - (a.salary_from || 0);
+    return new Date(b.created_at) - new Date(a.created_at);
   });
 
   return (
@@ -37,22 +86,23 @@ export default function SeekerVacancies({ onApply }) {
           <input
             placeholder="Должность или компания"
             value={search} onChange={e => setSearch(e.target.value)}
+            onKeyDown={e => e.key === "Enter" && handleSearch()}
             style={{ flex: 1, border: `1px solid ${C.border}`, borderRadius: 8, padding: "10px 14px", fontSize: 14, outline: "none", fontFamily: "inherit", color: C.text }}
           />
           <input
             placeholder="Город"
-            value={citySearch} onChange={e => setCitySearch(e.target.value)}
+            value={city} onChange={e => setCity(e.target.value)}
+            onKeyDown={e => e.key === "Enter" && handleSearch()}
             style={{ width: 160, border: `1px solid ${C.border}`, borderRadius: 8, padding: "10px 14px", fontSize: 14, outline: "none", fontFamily: "inherit", color: C.text }}
           />
-          <button onClick={() => {}}
+          <button onClick={handleSearch}
             style={{ background: C.primary, border: "none", borderRadius: 8, padding: "10px 24px", color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
             Найти
           </button>
         </div>
-        {/* Быстрые фильтры */}
         <div style={{ display: "flex", gap: 8 }}>
-          {QUICK_FILTERS.map(tag => (
-            <div key={tag} onClick={() => setActiveTag(tag)}
+          {QUICK_TAGS.map(tag => (
+            <div key={tag} onClick={() => handleTag(tag)}
               style={{ padding: "5px 14px", borderRadius: 8, fontSize: 13, cursor: "pointer", border: `1px solid ${activeTag === tag ? C.primary : C.border}`, background: activeTag === tag ? C.primaryLight : "#fff", color: activeTag === tag ? C.primary : C.text, transition: "all .12s" }}>
               {tag}
             </div>
@@ -60,9 +110,9 @@ export default function SeekerVacancies({ onApply }) {
         </div>
       </div>
 
-      {/* Заголовок результатов */}
+      {/* Счётчик + сортировка */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-        <span style={{ fontSize: 14, color: C.sub }}>{filtered.length} вакансий найдено</span>
+        <span style={{ fontSize: 14, color: C.sub }}>{sorted.length} вакансий найдено</span>
         <div style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}
           onClick={() => setSortBy(s => s === "По дате" ? "По зарплате" : "По дате")}>
           <span style={{ fontSize: 14, color: C.text }}>{sortBy}</span>
@@ -70,33 +120,107 @@ export default function SeekerVacancies({ onApply }) {
         </div>
       </div>
 
-      {/* Список вакансий */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        {filtered.map(v => (
-          <div key={v.id} onClick={() => onApply && onApply(v)}
-            style={{ background: "#fff", border: `1px solid ${C.border}`, borderRadius: 12, padding: "18px 20px", cursor: "pointer", transition: "border-color .15s, box-shadow .15s" }}
-            onMouseOver={e => { e.currentTarget.style.borderColor = C.borderFocus; e.currentTarget.style.boxShadow = "0 2px 12px rgba(37,99,235,0.08)"; }}
-            onMouseOut={e =>  { e.currentTarget.style.borderColor = C.border;      e.currentTarget.style.boxShadow = "none"; }}>
+      {/* Список */}
+      {loading ? (
+        <div style={{ textAlign: "center", padding: "60px 0", color: C.muted }}>
+          <div style={{ fontSize: 28, marginBottom: 8 }}>⏳</div>
+          <div>Загружаем вакансии...</div>
+        </div>
+      ) : sorted.length === 0 ? (
+        <div style={{ textAlign: "center", padding: "60px 0", color: C.muted }}>
+          <div style={{ fontSize: 36, marginBottom: 8 }}>🔍</div>
+          <div style={{ fontWeight: 600, marginBottom: 6 }}>Вакансий не найдено</div>
+          <div style={{ fontSize: 13 }}>Попробуйте изменить фильтры</div>
+        </div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {sorted.map(v => {
+            const isOpen      = expandedId === v.id;
+            const applyState  = applied[v.id];
+            const skillsList  = v.skills ? v.skills.split(",").map(s => s.trim()).filter(Boolean) : [];
+            const salary      = fmtSalary(v.salary_from, v.salary_to);
 
-            <div style={{ display: "flex", gap: 16, alignItems: "flex-start" }}>
-              {/* Иконка компании */}
-              <div style={{ width: 44, height: 44, borderRadius: 10, background: C.border, flexShrink: 0 }} />
-              <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 600, fontSize: 15, color: C.text, marginBottom: 3 }}>{v.title}</div>
-                <div style={{ fontSize: 13, color: C.sub, marginBottom: 8 }}>{v.company}   {v.city}</div>
-                <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
-                  {v.skills.map(s => (
-                    <span key={s} style={{ background: C.tagBg, borderRadius: 6, padding: "3px 10px", fontSize: 12, color: C.sub }}>{s}</span>
-                  ))}
-                  <span style={{ background: C.tagBg, borderRadius: 6, padding: "3px 10px", fontSize: 12, color: C.sub }}>{v.type}</span>
-                  <span style={{ background: C.tagBg, borderRadius: 6, padding: "3px 10px", fontSize: 12, color: C.sub }}>{v.exp}</span>
+            return (
+              <div key={v.id} style={{ background: "#fff", border: `1px solid ${isOpen ? C.primary : C.border}`, borderRadius: 12, overflow: "hidden", transition: "border-color .15s" }}>
+
+                {/* Строка вакансии — кликабельна */}
+                <div onClick={() => setExpandedId(isOpen ? null : v.id)}
+                  style={{ padding: "18px 20px", display: "flex", gap: 16, alignItems: "flex-start", cursor: "pointer" }}
+                  onMouseOver={e => { if (!isOpen) e.currentTarget.style.background = C.bg; }}
+                  onMouseOut={e =>  { e.currentTarget.style.background = "#fff"; }}>
+                  <div style={{ width: 44, height: 44, borderRadius: 10, background: C.border, flexShrink: 0 }} />
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 600, fontSize: 15, color: C.text, marginBottom: 3 }}>{v.title}</div>
+                    <div style={{ fontSize: 13, color: C.sub, marginBottom: 8 }}>
+                      {v.company && <span>{v.company}</span>}
+                      {v.company && v.city && <span>   </span>}
+                      {v.city && <span>{v.city}</span>}
+                    </div>
+                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                      {skillsList.slice(0, 4).map(s => (
+                        <span key={s} style={{ background: C.tagBg, borderRadius: 6, padding: "3px 10px", fontSize: 12, color: C.sub }}>{s}</span>
+                      ))}
+                      {v.schedule && (
+                        <span style={{ background: C.tagBg, borderRadius: 6, padding: "3px 10px", fontSize: 12, color: C.sub }}>{v.schedule}</span>
+                      )}
+                    </div>
+                    {salary && (
+                      <div style={{ fontWeight: 600, fontSize: 14, color: C.green, marginTop: 8 }}>{salary}</div>
+                    )}
+                  </div>
+                  <div style={{ color: C.muted, fontSize: 12, flexShrink: 0, marginTop: 4 }}>{isOpen ? "▲" : "▼"}</div>
                 </div>
-                <div style={{ fontWeight: 600, fontSize: 14, color: C.green }}>{v.salary} Руб.</div>
+
+                {/* Раскрывающаяся панель отклика */}
+                {isOpen && (
+                  <div style={{ borderTop: `1px solid ${C.border}`, padding: "16px 20px", background: C.bg }}>
+
+                    {/* Описание вакансии */}
+                    {v.description && (
+                      <div style={{ fontSize: 14, color: C.text, lineHeight: 1.6, marginBottom: 16 }}>
+                        {v.description}
+                      </div>
+                    )}
+
+                    {/* Доп. детали */}
+                    <div style={{ display: "flex", gap: 24, marginBottom: 16, flexWrap: "wrap" }}>
+                      {v.company  && <div style={{ fontSize: 13, color: C.sub }}>🏢 {v.company}</div>}
+                      {v.city     && <div style={{ fontSize: 13, color: C.sub }}>📍 {v.city}</div>}
+                      {v.schedule && <div style={{ fontSize: 13, color: C.sub }}>🕐 {v.schedule}</div>}
+                      {salary     && <div style={{ fontSize: 13, color: C.green, fontWeight: 600 }}>{salary}</div>}
+                    </div>
+
+                    {/* Кнопка Откликнуться */}
+                    {applyState === "success" ? (
+                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                        <div style={{ background: C.greenLight, border: `1px solid ${C.greenBorder}`, borderRadius: 8, padding: "10px 20px", color: C.green, fontWeight: 600, fontSize: 14 }}>
+                          ✓ Отклик отправлен!
+                        </div>
+                      </div>
+                    ) : (
+                      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                        <button
+                          onClick={() => handleApply(v.id)}
+                          disabled={applyState === "loading"}
+                          style={{ background: applyState === "loading" ? C.primaryBorder : C.primary, border: "none", borderRadius: 8, padding: "10px 24px", color: "#fff", fontWeight: 700, fontSize: 14, cursor: applyState === "loading" ? "default" : "pointer", fontFamily: "inherit" }}>
+                          {applyState === "loading" ? "Отправляем..." : "Откликнуться"}
+                        </button>
+                        {applyState && applyState !== "loading" && applyState !== "success" && (
+                          <div style={{ fontSize: 13, color: applyState === "no_profile" ? C.amber : C.red }}>
+                            {applyState === "no_profile"
+                              ? "⚠ Сначала заполните анкету в разделе «Моя анкета»"
+                              : `⚠ ${applyState}`}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
-            </div>
-          </div>
-        ))}
-      </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

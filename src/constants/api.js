@@ -1,78 +1,57 @@
-// ============================================================
-//  constants/api.js — Все запросы к серверу из React
-//  Сервер должен работать на http://localhost:3001
-// ============================================================
-
 const BASE = "http://localhost:3001/api";
 
-// ── Helpers ────────────────────────────────────────────────
-const get  = (url)        => fetch(url).then(r => r.json());
-const post = (url, body)  => fetch(url, { method: "POST",  headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).then(r => r.json());
-const put  = (url, body)  => fetch(url, { method: "PUT",   headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).then(r => r.json());
-const patch = (url, body) => fetch(url, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).then(r => r.json());
-const del  = (url)        => fetch(url, { method: "DELETE" }).then(r => r.json());
+const get   = (url)       => fetch(url).then(r => r.json());
+const post  = (url, body) => fetch(url, { method: "POST",   headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).then(r => r.json());
+const put   = (url, body) => fetch(url, { method: "PUT",    headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).then(r => r.json());
+const patch = (url, body) => fetch(url, { method: "PATCH",  headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).then(r => r.json());
+const del   = (url)       => fetch(url, { method: "DELETE" }).then(r => r.json());
 
-
-// ============================================================
-//  USERS API
-// ============================================================
-
+// ── USERS ────────────────────────────────────────────────────
 export const usersApi = {
-
-  // Войти / найти пользователя
-  // login({ email, password }) → { id, email, role }
-  login: (body) =>
-    post(`${BASE}/users/login`, body),
-
-  // Зарегистрироваться
-  // register({ email, password, role }) → { id, email, role }
-  register: (body) =>
-    post(`${BASE}/users/register`, body),
-
-  // Все пользователи
-  getAll: () =>
-    get(`${BASE}/users`),
+  login:    (body) => post(`${BASE}/users/login`,    body),
+  register: (body) => post(`${BASE}/users/register`, body),
+  getAll:   ()     => get(`${BASE}/users`),
 };
 
-
-// ============================================================
-//  SEEKERS API
-// ============================================================
-
-export const seekersApi = {
-
-  // Все соискатели (с фильтрами)
-  // getAll({ specialty, city, gender, application_status, max_salary })
+// ── VACANCIES ────────────────────────────────────────────────
+export const vacanciesApi = {
+  // Все вакансии с фильтрами (для соискателя)
   getAll: (filters = {}) => {
-    const params = new URLSearchParams();
-    Object.entries(filters).forEach(([k, v]) => { if (v) params.append(k, v); });
-    return get(`${BASE}/seekers?${params.toString()}`);
+    const p = new URLSearchParams();
+    Object.entries(filters).forEach(([k,v]) => { if (v) p.append(k, v); });
+    return get(`${BASE}/vacancies?${p.toString()}`);
   },
+  // Вакансии конкретного работодателя
+  getMy:   (user_id) => get(`${BASE}/vacancies/my/${user_id}`),
+  getById: (id)      => get(`${BASE}/vacancies/${id}`),
+  create:  (body)    => post(`${BASE}/vacancies`, body),
+  update:  (id,body) => put(`${BASE}/vacancies/${id}`, body),
+  delete:  (id)      => del(`${BASE}/vacancies/${id}`),
+};
 
-  // Анкета по user_id (для соискателя — его собственная анкета)
-  getByUserId: (user_id) =>
-    get(`${BASE}/seekers/by-user/${user_id}`),
+// ── APPLICATIONS ─────────────────────────────────────────────
+export const applicationsApi = {
+  // Откликнуться на вакансию
+  apply: (body) => post(`${BASE}/applications`, body),
+  // Отклики соискателя
+  getBySeeker:   (seeker_id) => get(`${BASE}/applications/seeker/${seeker_id}`),
+  // Входящие для работодателя
+  getByEmployer: (user_id)   => get(`${BASE}/applications/employer/${user_id}`),
+  // Изменить статус отклика
+  updateStatus:  (id,status) => patch(`${BASE}/applications/${id}/status`, { status }),
+};
 
-  // Анкета по id записи
-  getById: (id) =>
-    get(`${BASE}/seekers/${id}`),
-
-  // Создать анкету
-  // create({ user_id, full_name, age, gender, city, specialty, education, experience, skills, desired_salary })
-  create: (body) =>
-    post(`${BASE}/seekers`, body),
-
-  // Обновить анкету
-  // update(id, { full_name, age, ... })
-  update: (id, body) =>
-    put(`${BASE}/seekers/${id}`, body),
-
-  // Изменить статус заявки
-  // updateStatus(id, 'Принято' | 'Отказано' | 'На рассмотрении')
-  updateStatus: (id, application_status) =>
-    patch(`${BASE}/seekers/${id}/status`, { application_status }),
-
-  // Удалить анкету
-  delete: (id) =>
-    del(`${BASE}/seekers/${id}`),
+// ── SEEKERS ──────────────────────────────────────────────────
+export const seekersApi = {
+  getAll: (filters = {}) => {
+    const p = new URLSearchParams();
+    Object.entries(filters).forEach(([k,v]) => { if (v) p.append(k, v); });
+    return get(`${BASE}/seekers?${p.toString()}`);
+  },
+  getByUserId: (user_id) => get(`${BASE}/seekers/by-user/${user_id}`),
+  getById:     (id)      => get(`${BASE}/seekers/${id}`),
+  create:      (body)    => post(`${BASE}/seekers`, body),
+  update:      (id,body) => put(`${BASE}/seekers/${id}`, body),
+  updateStatus:(id,status)=> patch(`${BASE}/seekers/${id}/status`, { application_status: status }),
+  delete:      (id)      => del(`${BASE}/seekers/${id}`),
 };
