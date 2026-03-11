@@ -128,11 +128,12 @@ const RegisterForm = ({ onSwitch, onSuccess }) => {
 
 // ── Главный компонент ─────────────────────────────────────
 export default function AuthPage({ onLogin }) {
-  const [mode, setMode] = useState("login");
+    const [mode, setMode] = useState("login");
 
-  const handleSuccess = (user) => {
-    setTimeout(() => onLogin(user), 300);
-  };
+    const handleSuccess = (user) => {
+        localStorage.setItem("user", JSON.stringify(user));
+        setTimeout(() => onLogin(user), 300);
+    };
 
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", fontFamily: "'Inter','Segoe UI',sans-serif" }}>

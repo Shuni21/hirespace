@@ -5,7 +5,7 @@ const pool = new Pool({
   port: 5432,
   database: "hirespace",
   user: "postgres",
-  password: "21112003",
+  password: "123456",
 });
 
 // Проверка подключения
