@@ -107,33 +107,44 @@ export default function SeekerApplyForm({ currentUser, onProfileLoaded }) {
 
   const clear = () => { setForm(empty); setSavedOk(false); };
 
-  const submit = async () => {
-    setSaving(true);
-    const body = {
-      user_id:        currentUser?.id,
-      full_name:      form.full_name,
-      age:            parseInt(form.age) || 0,
-      gender:         form.gender,
-      city:           form.city,
-      specialty:      form.specialty,
-      education:      form.education,
-      experience:     form.experience,
-      skills:         form.skills,
-      desired_salary: parseInt(form.salary_from) || 0,
+    const submit = async () => {
+        console.log(form);
+        if (!form.full_name || !form.age || !form.gender || !form.email || !form.city || !form.specialty) {
+            alert("Заполните все обязательные поля: ФИО, возраст, пол, email, город, вакансия");
+            return;
+        }
+        setSaving(true);
+        const body = {
+            user_id:        currentUser?.id,
+            full_name:      form.full_name,
+            age:            parseInt(form.age) || 0,
+            gender:         form.gender,
+            city:           form.city,
+            specialty:      form.specialty,
+            education:      form.education || null,
+            experience:     form.experience || null,
+            skills:         form.skills || null,
+            desired_salary: parseInt(form.salary_from) || null,
+            phone:          form.phone || null,
+            schedule:       form.schedule || null,
+        };
+        try {
+            const result = seekerId
+                ? await seekersApi.update(seekerId, body)
+                : await seekersApi.create(body);
+            if (result.error) {
+                alert("Ошибка: " + result.error);
+                return;
+            }
+            setSeekerId(result.id);
+            setSavedOk(true);
+            if (onProfileLoaded) onProfileLoaded(result);
+        } catch (err) {
+            alert("Ошибка сохранения: " + err.message);
+        } finally {
+            setSaving(false);
+        }
     };
-    try {
-      const result = seekerId
-        ? await seekersApi.update(seekerId, body)
-        : await seekersApi.create(body);
-      setSeekerId(result.id);
-      setSavedOk(true);
-      if (onProfileLoaded) onProfileLoaded(result);
-    } catch (err) {
-      alert("Ошибка сохранения: " + err.message);
-    } finally {
-      setSaving(false);
-    }
-  };
 
   if (loading) return (
     <div style={{ textAlign: "center", padding: "80px 0", color: C.muted, fontFamily: "inherit" }}>
