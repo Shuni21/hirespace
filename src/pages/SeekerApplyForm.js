@@ -180,7 +180,7 @@ export default function SeekerApplyForm({ currentUser, onProfileLoaded }) {
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           <Sel label="Желаемая вакансия" required value={form.specialty} onChange={v => set("specialty", v)} options={SPECIALTIES} />
           <Sel label="График работы" value={form.schedule} onChange={v => set("schedule", v)} options={SCHEDULES} />
-          <Inp label="Зарплата от (₽)" type="number" placeholder="100 000 - 200 000₽" value={form.salary_from} onChange={e => set("salary_from", e.target.value)} />
+          <Inp label="Желаемая зарплата (₽)" type="number" placeholder="100 000 - 200 000₽" value={form.salary_from} onChange={e => set("salary_from", e.target.value)} />
         </div>
       </Section>
 

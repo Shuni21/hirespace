@@ -255,16 +255,21 @@ app.get("/api/vacancies/:id", async (req, res) => {
 });
 
 app.post("/api/vacancies", async (req, res) => {
-    const { employer_id, title, company, city, salary_from, salary_to, schedule, skills, description } = req.body;
+    const { employer_id, title, company, city, salary_from, salary_to, schedule, skills, description, email } = req.body;
     try {
         const result = await pool.query(
-            `INSERT INTO vacancies (employer_id, title, company, city, salary_from, salary_to, schedule, skills, description)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
-       RETURNING *`,
-            [employer_id, title, company, city,
+            `INSERT INTO vacancies (employer_id, title, company, city, salary_from, salary_to, schedule, skills, description, email)
+             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+                 RETURNING *`,
+            [
+                employer_id, title, company, city,
                 salary_from ? parseInt(salary_from) : null,
                 salary_to   ? parseInt(salary_to)   : null,
-                schedule || null, skills || null, description]
+                schedule    || null,
+                skills      || null,
+                description || null,
+                email       || null,
+            ]
         );
         res.status(201).json(result.rows[0]);
     } catch (err) {

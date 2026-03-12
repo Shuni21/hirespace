@@ -256,7 +256,7 @@ export default function EmployerSearch({ onUpdateStatus }) {
 
         <SubSection number="4" title="Бюджет">
           <div>
-            <Lbl>Макс. зарплатные ожидания (₽)</Lbl>
+            <Lbl>Желаемая зарплата (₽)</Lbl>
             <input value={f.max_salary} onChange={e => sf("max_salary", e.target.value)} placeholder="Например: 200000" style={{ ...inpSx, maxWidth: 340 }} />
           </div>
         </SubSection>
