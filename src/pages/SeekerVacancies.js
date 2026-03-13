@@ -6,11 +6,9 @@ const SKILLS_TAGS = ["Все", "React", "Vue", "TypeScript", "JavaScript", "Dock
 const SCHEDULES   = ["Любой", "Полный день", "Гибкий график", "Удалённо", "Сменный"];
 const EXPERIENCES = ["Любой", "Без опыта", "До 1 года", "1–3 года", "3–6 лет", "6–10 лет", "10+ лет"];
 
-const fmtSalary = (from, to) => {
-  if (!from && !to) return null;
-  if (from && to)   return `${from.toLocaleString("ru-RU")} - ${to.toLocaleString("ru-RU")} Руб.`;
-  if (from)         return `от ${from.toLocaleString("ru-RU")} Руб.`;
-  return `до ${to.toLocaleString("ru-RU")} Руб.`;
+const fmtSalary = (salary) => {
+  if (!salary) return null;
+  return `${Number(salary).toLocaleString("ru-RU")} руб.`;
 };
 
 const selStyle = {
@@ -29,7 +27,6 @@ export default function SeekerVacancies({ seekerData }) {
   const [activeTag,   setActiveTag]   = useState("Все");
   const [schedule,    setSchedule]    = useState("Любой");
   const [experience,  setExperience]  = useState("Любой");
-  const [sortBy,      setSortBy]      = useState("По дате");
   const [expandedId,  setExpandedId]  = useState(null);
   const [applied,     setApplied]     = useState({});
 
@@ -51,8 +48,8 @@ export default function SeekerVacancies({ seekerData }) {
     const f = {};
     if (search) f.title = search;
     if (city)   f.city  = city;
-    if (tag !== "Все")   f.skill    = tag;
-    if (sch !== "Любой") f.schedule = sch;
+    if (tag !== "Все")   f.skill      = tag;
+    if (sch !== "Любой") f.schedule   = sch;
     if (exp !== "Любой") f.experience = exp;
     return f;
   };
@@ -97,11 +94,6 @@ export default function SeekerVacancies({ seekerData }) {
       setApplied(a => ({ ...a, [vacancy_id]: "Ошибка сервера" }));
     }
   };
-
-  const sorted = [...vacancies].sort((a, b) => {
-    if (sortBy === "По зарплате") return (b.salary_from || 0) - (a.salary_from || 0);
-    return new Date(b.created_at) - new Date(a.created_at);
-  });
 
   const hasFilters = search || city || activeTag !== "Все" || schedule !== "Любой" || experience !== "Любой";
 
@@ -158,14 +150,9 @@ export default function SeekerVacancies({ seekerData }) {
           </div>
         </div>
 
-        {/* Счётчик + сортировка */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-          <span style={{ fontSize: 14, color: C.sub }}>{sorted.length} вакансий найдено</span>
-          <div style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}
-               onClick={() => setSortBy(s => s === "По дате" ? "По зарплате" : "По дате")}>
-            <span style={{ fontSize: 14, color: C.text }}>{sortBy}</span>
-            <span style={{ fontSize: 12, color: C.sub }}>▾</span>
-          </div>
+        {/* Счётчик */}
+        <div style={{ marginBottom: 16 }}>
+          <span style={{ fontSize: 14, color: C.sub }}>{vacancies.length} вакансий найдено</span>
         </div>
 
         {/* Список */}
@@ -174,7 +161,7 @@ export default function SeekerVacancies({ seekerData }) {
               <div style={{ fontSize: 28, marginBottom: 8 }}>⏳</div>
               <div>Загружаем вакансии...</div>
             </div>
-        ) : sorted.length === 0 ? (
+        ) : vacancies.length === 0 ? (
             <div style={{ textAlign: "center", padding: "60px 0", color: C.muted }}>
               <div style={{ fontSize: 36, marginBottom: 8 }}>🔍</div>
               <div style={{ fontWeight: 600, marginBottom: 6 }}>Вакансий не найдено</div>
@@ -182,11 +169,11 @@ export default function SeekerVacancies({ seekerData }) {
             </div>
         ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              {sorted.map(v => {
+              {vacancies.map(v => {
                 const isOpen     = expandedId === v.id;
                 const applyState = applied[v.id];
                 const skillsList = v.skills ? v.skills.split(",").map(s => s.trim()).filter(Boolean) : [];
-                const salary     = fmtSalary(v.salary_from, v.salary_to);
+                const salary     = fmtSalary(v.salary);
 
                 return (
                     <div key={v.id} style={{ background: "#fff", border: `1px solid ${isOpen ? C.primary : C.border}`, borderRadius: 12, overflow: "hidden", transition: "border-color .15s" }}>
@@ -210,6 +197,9 @@ export default function SeekerVacancies({ seekerData }) {
                             {v.schedule && (
                                 <span style={{ background: C.tagBg, borderRadius: 6, padding: "3px 10px", fontSize: 12, color: C.sub }}>{v.schedule}</span>
                             )}
+                            {v.experience && (
+                                <span style={{ background: C.tagBg, borderRadius: 6, padding: "3px 10px", fontSize: 12, color: C.sub }}>{v.experience}</span>
+                            )}
                           </div>
                           {salary && (
                               <div style={{ fontWeight: 600, fontSize: 14, color: C.green, marginTop: 8 }}>{salary}</div>
@@ -226,11 +216,12 @@ export default function SeekerVacancies({ seekerData }) {
                                 </div>
                             )}
                             <div style={{ display: "flex", gap: 24, marginBottom: 16, flexWrap: "wrap" }}>
-                              {v.company  && <div style={{ fontSize: 13, color: C.sub }}>🏢 {v.company}</div>}
-                              {v.city     && <div style={{ fontSize: 13, color: C.sub }}>📍 {v.city}</div>}
-                              {v.schedule && <div style={{ fontSize: 13, color: C.sub }}>🕐 {v.schedule}</div>}
-                              {v.email    && <div style={{ fontSize: 13, color: C.sub }}>✉️ {v.email}</div>}
-                              {salary     && <div style={{ fontSize: 13, color: C.green, fontWeight: 600 }}>{salary}</div>}
+                              {v.company    && <div style={{ fontSize: 13, color: C.sub }}>🏢 {v.company}</div>}
+                              {v.city       && <div style={{ fontSize: 13, color: C.sub }}>📍 {v.city}</div>}
+                              {v.schedule   && <div style={{ fontSize: 13, color: C.sub }}>🕐 {v.schedule}</div>}
+                              {v.experience && <div style={{ fontSize: 13, color: C.sub }}>💼 {v.experience}</div>}
+                              {v.email      && <div style={{ fontSize: 13, color: C.sub }}>✉️ {v.email}</div>}
+                              {salary       && <div style={{ fontSize: 13, color: C.green, fontWeight: 600 }}>{salary}</div>}
                             </div>
 
                             {applyState === "success" ? (

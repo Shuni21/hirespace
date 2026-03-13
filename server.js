@@ -87,7 +87,6 @@ app.get("/api/seekers", async (req, res) => {
     }
 });
 
-// ВАЖНО: специфичные роуты ПЕРЕД /:id
 app.get("/api/seekers/by-user/:user_id", async (req, res) => {
     try {
         const result = await pool.query(
@@ -209,16 +208,17 @@ app.delete("/api/seekers/:id", async (req, res) => {
 // ============================================================
 
 app.get("/api/vacancies", async (req, res) => {
-    const { title, city, skill, schedule } = req.query;
+    const { title, city, skill, schedule, experience } = req.query;
 
-    let query  = `SELECT * FROM vacancies WHERE 1=1`;
+    let query = `SELECT * FROM vacancies WHERE 1=1`;
     const params = [];
     let i = 1;
 
-    if (title)    { query += ` AND title ILIKE $${i++}`;  params.push(`%${title}%`); }
-    if (city)     { query += ` AND city ILIKE $${i++}`;   params.push(`%${city}%`); }
-    if (skill)    { query += ` AND skills ILIKE $${i++}`; params.push(`%${skill}%`); }
-    if (schedule) { query += ` AND schedule = $${i++}`;   params.push(schedule); }
+    if (title)      { query += ` AND title ILIKE $${i++}`;      params.push(`%${title}%`); }
+    if (city)       { query += ` AND city ILIKE $${i++}`;       params.push(`%${city}%`); }
+    if (skill)      { query += ` AND skills ILIKE $${i++}`;     params.push(`%${skill}%`); }
+    if (schedule)   { query += ` AND schedule = $${i++}`;       params.push(schedule); }
+    if (experience) { query += ` AND experience = $${i++}`;     params.push(experience); }
 
     query += ` ORDER BY created_at DESC`;
 
@@ -226,11 +226,11 @@ app.get("/api/vacancies", async (req, res) => {
         const result = await pool.query(query, params);
         res.json(result.rows);
     } catch (err) {
+        console.error(err);
         res.status(500).json({ error: err.message });
     }
 });
 
-// ВАЖНО: /my/:user_id ПЕРЕД /:id
 app.get("/api/vacancies/my/:user_id", async (req, res) => {
     try {
         const result = await pool.query(
@@ -239,70 +239,83 @@ app.get("/api/vacancies/my/:user_id", async (req, res) => {
         );
         res.json(result.rows);
     } catch (err) {
+        console.error(err);
         res.status(500).json({ error: err.message });
     }
 });
 
 app.get("/api/vacancies/:id", async (req, res) => {
     try {
-        const result = await pool.query(`SELECT * FROM vacancies WHERE id = $1`, [req.params.id]);
+        const result = await pool.query(
+            `SELECT * FROM vacancies WHERE id = $1`,
+            [req.params.id]
+        );
         if (result.rows.length === 0)
             return res.status(404).json({ error: "Вакансия не найдена" });
         res.json(result.rows[0]);
     } catch (err) {
+        console.error(err);
         res.status(500).json({ error: err.message });
     }
 });
 
+// ✅ POST — добавлен experience
 app.post("/api/vacancies", async (req, res) => {
-    const { employer_id, title, company, city, salary_from, salary_to, schedule, skills, description, email } = req.body;
+    const { employer_id, title, company, city, salary, schedule, experience, skills } = req.body;
     try {
         const result = await pool.query(
-            `INSERT INTO vacancies (employer_id, title, company, city, salary_from, salary_to, schedule, skills, description, email)
-             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
-                 RETURNING *`,
+            `INSERT INTO vacancies (employer_id, title, company, city, salary, schedule, experience, skills)
+             VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+             RETURNING *`,
             [
-                employer_id, title, company, city,
-                salary_from ? parseInt(salary_from) : null,
-                salary_to   ? parseInt(salary_to)   : null,
-                schedule    || null,
-                skills      || null,
-                description || null,
-                email       || null,
+                employer_id,
+                title,
+                company,
+                city,
+                salary ? parseInt(salary) : null,
+                schedule   || null,
+                experience || null,
+                skills     || null
             ]
         );
         res.status(201).json(result.rows[0]);
     } catch (err) {
+        console.error(err);
         res.status(400).json({ error: err.message });
     }
 });
 
-// ИСПРАВЛЕН роут: был PUT /api/vacancies без /:id
+// ✅ PUT — добавлен experience
 app.put("/api/vacancies/:id", async (req, res) => {
-    const { title, company, city, salary_from, salary_to, schedule, skills, description } = req.body;
+    const { title, company, city, salary, schedule, experience, skills } = req.body;
     try {
         const result = await pool.query(
             `UPDATE vacancies SET
-         title       = COALESCE($1, title),
-         company     = COALESCE($2, company),
-         city        = COALESCE($3, city),
-         salary_from = COALESCE($4, salary_from),
-         salary_to   = COALESCE($5, salary_to),
-         schedule    = COALESCE($6, schedule),
-         skills      = COALESCE($7, skills),
-         description = COALESCE($8, description)
-       WHERE id = $9
-       RETURNING *`,
-            [title, company, city,
-                salary_from ? parseInt(salary_from) : null,
-                salary_to   ? parseInt(salary_to)   : null,
-                schedule || null, skills || null, description,
-                req.params.id]
+                title      = COALESCE($1, title),
+                company    = COALESCE($2, company),
+                city       = COALESCE($3, city),
+                salary     = COALESCE($4, salary),
+                schedule   = COALESCE($5, schedule),
+                experience = COALESCE($6, experience),
+                skills     = COALESCE($7, skills)
+             WHERE id = $8
+             RETURNING *`,
+            [
+                title,
+                company,
+                city,
+                salary ? parseInt(salary) : null,
+                schedule   || null,
+                experience || null,
+                skills     || null,
+                req.params.id
+            ]
         );
         if (result.rows.length === 0)
             return res.status(404).json({ error: "Вакансия не найдена" });
         res.json(result.rows[0]);
     } catch (err) {
+        console.error(err);
         res.status(400).json({ error: err.message });
     }
 });
@@ -312,6 +325,7 @@ app.delete("/api/vacancies/:id", async (req, res) => {
         await pool.query(`DELETE FROM vacancies WHERE id = $1`, [req.params.id]);
         res.json({ message: "Вакансия удалена" });
     } catch (err) {
+        console.error(err);
         res.status(500).json({ error: err.message });
     }
 });
@@ -346,7 +360,7 @@ app.post("/api/applications", async (req, res) => {
 app.get("/api/applications/seeker/:seeker_id", async (req, res) => {
     try {
         const result = await pool.query(
-            `SELECT a.*, v.title, v.company, v.city, v.salary_from, v.salary_to, v.schedule
+            `SELECT a.*, v.title, v.company, v.city, v.salary, v.schedule
        FROM applications a
        JOIN vacancies v ON v.id = a.vacancy_id
        WHERE a.seeker_id = $1
@@ -400,4 +414,3 @@ app.patch("/api/applications/:id/status", async (req, res) => {
 app.listen(PORT, () => {
     console.log(`🚀 Сервер запущен: http://localhost:${PORT}`);
 });
-
