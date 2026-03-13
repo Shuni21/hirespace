@@ -25,8 +25,8 @@ app.post("/api/users/register", async (req, res) => {
     try {
         const result = await pool.query(
             `INSERT INTO users (email, password, role)
-       VALUES ($1, $2, $3)
-       RETURNING id, email, role`,
+             VALUES ($1, $2, $3)
+                 RETURNING id, email, role`,
             [email, password, role]
         );
         res.status(201).json(result.rows[0]);
@@ -90,9 +90,9 @@ app.get("/api/seekers", async (req, res) => {
 app.get("/api/seekers/by-user/:user_id", async (req, res) => {
     try {
         const result = await pool.query(
-            `SELECT s.*, u.email FROM seekers s
-       JOIN users u ON u.id = s.user_id
-       WHERE s.user_id = $1`,
+            `SELECT s.*, u.email AS user_email FROM seekers s
+                                                        JOIN users u ON u.id = s.user_id
+             WHERE s.user_id = $1`,
             [req.params.user_id]
         );
         if (result.rows.length === 0)
@@ -106,9 +106,9 @@ app.get("/api/seekers/by-user/:user_id", async (req, res) => {
 app.get("/api/seekers/:id", async (req, res) => {
     try {
         const result = await pool.query(
-            `SELECT s.*, u.email FROM seekers s
-       JOIN users u ON u.id = s.user_id
-       WHERE s.id = $1`,
+            `SELECT s.*, u.email AS user_email FROM seekers s
+                                                        JOIN users u ON u.id = s.user_id
+             WHERE s.id = $1`,
             [req.params.id]
         );
         if (result.rows.length === 0)
@@ -123,17 +123,17 @@ app.post("/api/seekers", async (req, res) => {
     const {
         user_id, full_name, age, gender, city,
         specialty, education, experience, skills, desired_salary,
-        phone, schedule,
+        phone, schedule, email,
     } = req.body;
 
     try {
         const result = await pool.query(
             `INSERT INTO seekers
-         (user_id, full_name, age, gender, city, specialty, education, experience, skills, desired_salary, phone, schedule)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
-       RETURNING *`,
+             (user_id, full_name, age, gender, city, specialty, education, experience, skills, desired_salary, phone, schedule, email)
+             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
+                 RETURNING *`,
             [user_id, full_name, age || 0, gender, city, specialty, education,
-                experience, skills, desired_salary || null, phone || null, schedule || null]
+                experience, skills, desired_salary || null, phone || null, schedule || null, email || null]
         );
         res.status(201).json(result.rows[0]);
     } catch (err) {
@@ -145,28 +145,29 @@ app.put("/api/seekers/:id", async (req, res) => {
     const {
         full_name, age, gender, city,
         specialty, education, experience, skills, desired_salary,
-        phone, schedule,
+        phone, schedule, email,
     } = req.body;
 
     try {
         const result = await pool.query(
             `UPDATE seekers SET
-         full_name      = COALESCE($1,  full_name),
-         age            = COALESCE($2,  age),
-         gender         = COALESCE($3,  gender),
-         city           = COALESCE($4,  city),
-         specialty      = COALESCE($5,  specialty),
-         education      = COALESCE($6,  education),
-         experience     = COALESCE($7,  experience),
-         skills         = COALESCE($8,  skills),
-         desired_salary = COALESCE($9,  desired_salary),
-         phone          = COALESCE($10, phone),
-         schedule       = COALESCE($11, schedule)
-       WHERE id = $12
-       RETURNING *`,
+                                full_name      = COALESCE($1,  full_name),
+                                age            = COALESCE($2,  age),
+                                gender         = COALESCE($3,  gender),
+                                city           = COALESCE($4,  city),
+                                specialty      = COALESCE($5,  specialty),
+                                education      = COALESCE($6,  education),
+                                experience     = COALESCE($7,  experience),
+                                skills         = COALESCE($8,  skills),
+                                desired_salary = COALESCE($9,  desired_salary),
+                                phone          = COALESCE($10, phone),
+                                schedule       = COALESCE($11, schedule),
+                                email          = COALESCE($12, email)
+             WHERE id = $13
+                 RETURNING *`,
             [full_name, age || null, gender, city, specialty, education,
                 experience, skills, desired_salary || null, phone || null, schedule || null,
-                req.params.id]
+                email || null, req.params.id]
         );
         if (result.rows.length === 0)
             return res.status(404).json({ error: "Соискатель не найден" });
@@ -181,8 +182,8 @@ app.patch("/api/seekers/:id/status", async (req, res) => {
     try {
         const result = await pool.query(
             `UPDATE seekers SET application_status = $1
-       WHERE id = $2
-       RETURNING id, full_name, application_status`,
+             WHERE id = $2
+                 RETURNING id, full_name, application_status`,
             [application_status, req.params.id]
         );
         if (result.rows.length === 0)
@@ -259,14 +260,13 @@ app.get("/api/vacancies/:id", async (req, res) => {
     }
 });
 
-// ✅ POST — добавлен experience
 app.post("/api/vacancies", async (req, res) => {
     const { employer_id, title, company, city, salary, schedule, experience, skills } = req.body;
     try {
         const result = await pool.query(
             `INSERT INTO vacancies (employer_id, title, company, city, salary, schedule, experience, skills)
              VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
-             RETURNING *`,
+                 RETURNING *`,
             [
                 employer_id,
                 title,
@@ -285,21 +285,20 @@ app.post("/api/vacancies", async (req, res) => {
     }
 });
 
-// ✅ PUT — добавлен experience
 app.put("/api/vacancies/:id", async (req, res) => {
     const { title, company, city, salary, schedule, experience, skills } = req.body;
     try {
         const result = await pool.query(
             `UPDATE vacancies SET
-                title      = COALESCE($1, title),
-                company    = COALESCE($2, company),
-                city       = COALESCE($3, city),
-                salary     = COALESCE($4, salary),
-                schedule   = COALESCE($5, schedule),
-                experience = COALESCE($6, experience),
-                skills     = COALESCE($7, skills)
+                                  title      = COALESCE($1, title),
+                                  company    = COALESCE($2, company),
+                                  city       = COALESCE($3, city),
+                                  salary     = COALESCE($4, salary),
+                                  schedule   = COALESCE($5, schedule),
+                                  experience = COALESCE($6, experience),
+                                  skills     = COALESCE($7, skills)
              WHERE id = $8
-             RETURNING *`,
+                 RETURNING *`,
             [
                 title,
                 company,
@@ -347,8 +346,8 @@ app.post("/api/applications", async (req, res) => {
 
         const result = await pool.query(
             `INSERT INTO applications (vacancy_id, seeker_id)
-       VALUES ($1, $2)
-       RETURNING *`,
+             VALUES ($1, $2)
+                 RETURNING *`,
             [vacancy_id, seeker_id]
         );
         res.status(201).json(result.rows[0]);
@@ -361,10 +360,10 @@ app.get("/api/applications/seeker/:seeker_id", async (req, res) => {
     try {
         const result = await pool.query(
             `SELECT a.*, v.title, v.company, v.city, v.salary, v.schedule
-       FROM applications a
-       JOIN vacancies v ON v.id = a.vacancy_id
-       WHERE a.seeker_id = $1
-       ORDER BY a.created_at DESC`,
+             FROM applications a
+                      JOIN vacancies v ON v.id = a.vacancy_id
+             WHERE a.seeker_id = $1
+             ORDER BY a.created_at DESC`,
             [req.params.seeker_id]
         );
         res.json(result.rows);
@@ -377,13 +376,13 @@ app.get("/api/applications/employer/:user_id", async (req, res) => {
     try {
         const result = await pool.query(
             `SELECT a.*, v.title AS vacancy_title, v.company,
-              s.full_name, s.specialty, s.desired_salary, s.skills, u.email
-       FROM applications a
-       JOIN vacancies v ON v.id = a.vacancy_id
-       JOIN seekers   s ON s.id = a.seeker_id
-       JOIN users     u ON u.id = s.user_id
-       WHERE v.employer_id = $1
-       ORDER BY a.created_at DESC`,
+                    s.full_name, s.specialty, s.desired_salary, s.skills, s.email, u.email AS user_email
+             FROM applications a
+                      JOIN vacancies v ON v.id = a.vacancy_id
+                      JOIN seekers   s ON s.id = a.seeker_id
+                      JOIN users     u ON u.id = s.user_id
+             WHERE v.employer_id = $1
+             ORDER BY a.created_at DESC`,
             [req.params.user_id]
         );
         res.json(result.rows);
