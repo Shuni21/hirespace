@@ -31,7 +31,7 @@ const LoginForm = ({ onSwitch, onSuccess }) => {
     setLoading(true);
     try {
       const user = await usersApi.login({ email, password });
-      if (user.error) { setErrors({ password: "Неверная почта или пароль" }); return; }
+        if (user.error) { setErrors({ email: " ", password: "Неверная почта или пароль" }); return; }
       onSuccess(user);
     } catch {
       setErrors({ password: "Ошибка подключения к серверу" });
@@ -110,17 +110,15 @@ const RegisterForm = ({ onSwitch, onSuccess }) => {
       <Inp label="Полное имя" placeholder="Алексей Алексеевич" value={name}     onChange={e => { setName(e.target.value);     setErrors(er => ({ ...er, name: null })); }} error={errors.name} />
       <Inp label="Email"      type="email" placeholder="you@yandex.ru"           value={email}    onChange={e => { setEmail(e.target.value);    setErrors(er => ({ ...er, email: null })); }} error={errors.email} />
       <Inp label="Пароль"     type="password" placeholder="Минимум 6 символов"  value={password} onChange={e => { setPassword(e.target.value); setErrors(er => ({ ...er, password: null })); }} error={errors.password} />
-      <div style={{ textAlign: "right", marginTop: -8, marginBottom: 20 }}>
-        <span style={{ fontSize: 14, color: C.primary, cursor: "pointer" }}>Забыли пароль?</span>
-      </div>
+
 
       <button onClick={submit} disabled={loading}
         style={{ width: "100%", background: C.primary, border: "none", borderRadius: 8, padding: "13px", color: "#fff", fontWeight: 700, fontSize: 15, cursor: "pointer", fontFamily: "inherit" }}>
         {loading ? "Создаём..." : "Зарегистрироваться"}
       </button>
       <p style={{ textAlign: "center", fontSize: 14, color: C.sub, marginTop: 20 }}>
-        Нет аккаунта?{" "}
-        <span onClick={onSwitch} style={{ color: C.primary, fontWeight: 600, cursor: "pointer" }}>Зарегистрироваться</span>
+        Есть аккаунт?{" "}
+        <span onClick={onSwitch} style={{ color: C.primary, fontWeight: 600, cursor: "pointer" }}>Войти</span>
       </p>
     </div>
   );
